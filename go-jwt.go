@@ -112,7 +112,7 @@ func NewToken_Default(data interface{}) *Token  {
 	}
 }
 
-func (t *Token) Marshal(key encdecryption.Key) (TokenInstance,error) {
+func (t *Token) Marshal(key Key) (TokenInstance,error) {
 	var buf = new(bytes.Buffer)
 
 	by,err := t.Issue.Marshal()
@@ -131,19 +131,19 @@ func (t *Token) Marshal(key encdecryption.Key) (TokenInstance,error) {
 	var aesEncrypt []byte
 	switch t.Issue.method {
 	case encdecryption.Method_AES_CBC:
-		aesEncrypt,err = encdecryption.AesEncryptCBC(buf.Bytes(),key)
+		aesEncrypt,err = encdecryption.AesEncryptCBC(buf.Bytes(),encdecryption.Key(key))
 	case encdecryption.Method_AES_CTR:
-		aesEncrypt,err = encdecryption.AesCtrCrypt(buf.Bytes(),key)
+		aesEncrypt,err = encdecryption.AesCtrCrypt(buf.Bytes(),encdecryption.Key(key))
 	case encdecryption.Method_AES_CFB:
-		aesEncrypt,err = encdecryption.AesEncryptCFB(buf.Bytes(),key)
+		aesEncrypt,err = encdecryption.AesEncryptCFB(buf.Bytes(),encdecryption.Key(key))
 	case encdecryption.Method_AES_ECB:
-		aesEncrypt,err = encdecryption.AesEncryptECB(buf.Bytes(),key)
+		aesEncrypt,err = encdecryption.AesEncryptECB(buf.Bytes(),encdecryption.Key(key))
 	case encdecryption.Method_AES_OFB:
-		aesEncrypt,err = encdecryption.AesEncryptOFB(buf.Bytes(),key)
+		aesEncrypt,err = encdecryption.AesEncryptOFB(buf.Bytes(),encdecryption.Key(key))
 	case encdecryption.Method_DES:
-		aesEncrypt,err = encdecryption.DesEncrypt(buf.Bytes(),key)
+		aesEncrypt,err = encdecryption.DesEncrypt(buf.Bytes(),encdecryption.Key(key))
 	case encdecryption.Method_RSA:
-		aesEncrypt,err = encdecryption.RsaEncrypt(buf.Bytes(),key)
+		aesEncrypt,err = encdecryption.RsaEncrypt(buf.Bytes(),encdecryption.Key(key))
 	default:
 		return nil,errors.New("不存在的加密方式")
 	}
@@ -152,7 +152,7 @@ func (t *Token) Marshal(key encdecryption.Key) (TokenInstance,error) {
 	}
 	buf.Reset()
 	// 写入加密后数据长度
-	if err = binary.Write(buf,binary.LittleEndian,uint16(len(aesEncrypt)));err != nil {
+	if err = binary.Write(buf,binary.LittleEndian,uint32(len(aesEncrypt)));err != nil {
 		return nil, err
 	}
 	// 写入加密数据
@@ -173,11 +173,11 @@ func (t *Token) Marshal(key encdecryption.Key) (TokenInstance,error) {
 	return buf.Bytes(),err
 }
 
-func (t *Token) Unmarshal(tokenBytes []byte,key encdecryption.Key) (error) {
+func (t *Token) Unmarshal(tokenBytes []byte,key Key) (error) {
 	return  t.unmarshal(tokenBytes,key)
 }
 
-func (t *Token) UnmarshalHexString(hexString string,key encdecryption.Key) (error) {
+func (t *Token) UnmarshalHexString(hexString string,key Key) (error) {
 	tokenBytes,err := hex.DecodeString(hexString)
 	if err != nil {
 		return err
@@ -185,16 +185,16 @@ func (t *Token) UnmarshalHexString(hexString string,key encdecryption.Key) (erro
 	return  t.unmarshal(tokenBytes,key)
 }
 
-func (t *Token) verifyMd5(tokenBytes []byte,key encdecryption.Key) ([]byte,error) {
-	tl := binary.LittleEndian.Uint16(tokenBytes[:2])
-	ok := bytes.Equal(GetMd5(tokenBytes[:tl+3],key),tokenBytes[tl+3:])
+func (t *Token) verifyMd5(tokenBytes []byte,key Key) ([]byte,error) {
+	tl := binary.LittleEndian.Uint16(tokenBytes[:4])
+	ok := bytes.Equal(GetMd5(tokenBytes[:tl+5],key),tokenBytes[tl+5:])
 	if !ok {
-		return tokenBytes[2:tl+3],ModfToken_Error
+		return tokenBytes[4:tl+5],ModfToken_Error
 	}
-	return tokenBytes[2:tl+3],nil
+	return tokenBytes[4:tl+5],nil
 }
 
-func (t *Token) unmarshal(tokenBytes []byte,key encdecryption.Key) error {
+func (t *Token) unmarshal(tokenBytes []byte,key Key) error {
 	var err error
 	var tokenMod error
 	tokenBytes,tokenMod = t.verifyMd5(tokenBytes,key)
@@ -205,19 +205,19 @@ func (t *Token) unmarshal(tokenBytes []byte,key encdecryption.Key) error {
 	var decode []byte
 	switch t.Issue.method {
 	case encdecryption.Method_AES_CBC:
-		decode,err = encdecryption.AesDecryptCBC(tokenBytes[:tlen],key)
+		decode,err = encdecryption.AesDecryptCBC(tokenBytes[:tlen],encdecryption.Key(key))
 	case encdecryption.Method_AES_CTR:
-		decode,err = encdecryption.AesCtrCrypt(tokenBytes[:tlen],key)
+		decode,err = encdecryption.AesCtrCrypt(tokenBytes[:tlen],encdecryption.Key(key))
 	case encdecryption.Method_AES_CFB:
-		decode,err = encdecryption.AesDecryptCFB(tokenBytes[:tlen],key)
+		decode,err = encdecryption.AesDecryptCFB(tokenBytes[:tlen],encdecryption.Key(key))
 	case encdecryption.Method_AES_ECB:
-		decode,err = encdecryption.AesDecryptECB(tokenBytes[:tlen],key)
+		decode,err = encdecryption.AesDecryptECB(tokenBytes[:tlen],encdecryption.Key(key))
 	case encdecryption.Method_AES_OFB:
-		decode,err = encdecryption.AesDecryptOFB(tokenBytes[:tlen],key)
+		decode,err = encdecryption.AesDecryptOFB(tokenBytes[:tlen],encdecryption.Key(key))
 	case encdecryption.Method_DES:
-		decode,err = encdecryption.DesDecrypt(tokenBytes[:tlen],key)
+		decode,err = encdecryption.DesDecrypt(tokenBytes[:tlen],encdecryption.Key(key))
 	case encdecryption.Method_RSA:
-		decode,err = encdecryption.RsaDecrypt(tokenBytes[:tlen],key)
+		decode,err = encdecryption.RsaDecrypt(tokenBytes[:tlen],encdecryption.Key(key))
 	default:
 		return errors.New("不存在的加密方式")
 	}

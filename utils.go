@@ -2,7 +2,6 @@ package go_token
 
 import (
 	"crypto/md5"
-	go_encdecryption "github.com/Li-giegie/go-encdecryption"
 	"github.com/shirou/gopsutil/host"
 	"log"
 	"math"
@@ -35,7 +34,7 @@ func getID() string{
 	return hostInfo.Hostname + strconv.Itoa(index)
 }
 
-func GetMd5(data []byte,key go_encdecryption.Key) []byte {
+func GetMd5(data []byte,key Key) []byte {
 	h := md5.New()
 	h.Write(data)
 	return h.Sum(key)

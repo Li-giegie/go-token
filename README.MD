@@ -21,3 +21,5 @@
 加密任意数据+颁发者 --> 对加密数据取MD5值 --> 生成token实例 --> hexString作为token
 
 go-token 会把任意数据和颁发者序列化成JSON和封装的bytes切片，按颁发者给出的method加密方法和秘钥key进行加密，加密完成后对加密取MD5值，防篡改。
+
+[如何使用](./go-jwt_test.go)
